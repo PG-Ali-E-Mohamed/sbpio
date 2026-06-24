@@ -1,0 +1,103 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# ---------------------------------------------------------------------------
+# Project metadata (PEP 621)
+# ---------------------------------------------------------------------------
+
+[project]
+name = "sbpio"
+version = "0.1.0"
+description = "Sub-Bottom Profiler (SBP) seismic data I/O and processing toolkit"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.8"
+authors = [
+    { name = "Ali Mohamed", email = "aliarafa327@gmail.com" },
+]
+keywords = [
+    "sub-bottom profiler",
+    "SBP",
+    "SEG-Y",
+    "marine geophysics",
+    "seismic processing",
+    "oceanography",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+# ---------------------------------------------------------------------------
+# Runtime dependencies
+# ---------------------------------------------------------------------------
+
+dependencies = [
+    "matplotlib>=3.3",
+    "numpy>=1.20",
+    "pandas>=1.3",
+    "geopandas>=0.10",
+    "segyio>=1.9",
+    "tqdm>=4.50",
+    "scikit-image>=0.2",
+    "shapely>=1.8",
+    "pyproj>=3.1",
+    "scipy>=1.7",
+]
+
+# ---------------------------------------------------------------------------
+# Optional / development dependencies
+# ---------------------------------------------------------------------------
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=3.0",
+    "black>=22.0",
+    "isort>=5.0",
+    "flake8>=4.0",
+    "build",
+    "twine",
+]
+
+# ---------------------------------------------------------------------------
+# URLs shown on PyPI
+# ---------------------------------------------------------------------------
+
+[project.urls]
+Homepage   = "https://github.com/PG-Ali-E-Mohamed/sbpio"
+Repository = "https://github.com/PG-Ali-E-Mohamed/sbpio"
+Issues     = "https://github.com/PG-Ali-E-Mohamed/sbpio/issues"
+Changelog  = "https://github.com/PG-Ali-E-Mohamed/sbpio/blob/main/CHANGELOG.md"
+
+# ---------------------------------------------------------------------------
+# Package discovery
+# ---------------------------------------------------------------------------
+
+[tool.setuptools.packages.find]
+include = ["sbpio*"]
+
+# ---------------------------------------------------------------------------
+# Tool configuration
+# ---------------------------------------------------------------------------
+
+[tool.black]
+line-length    = 88
+target-version = ["py38", "py39", "py310", "py311"]
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest.ini_options]
+testpaths      = ["tests"]
+addopts        = "-v --tb=short"
+filterwarnings = ["ignore::DeprecationWarning"]
