@@ -24,13 +24,9 @@ from shapely.geometry import Point
 from skimage.exposure import rescale_intensity
 import math 
 from tqdm import tqdm
-
-try:
-    from scipy.interpolate import interp1d as _interp1d
-    from scipy.signal import hilbert
-    _SCIPY_AVAILABLE = True
-except ImportError:
-    _SCIPY_AVAILABLE = False
+from scipy.interpolate import interp1d as _interp1d
+from scipy.signal import hilbert
+from scipy.ndimage import maximum_filter1d
 
 # ---------------------------------------------------------------------------
 # Visualisation helpers
@@ -712,14 +708,8 @@ def extract_seafloor(im: np.ndarray, w: int) -> Tuple[np.ndarray, np.ndarray]:
     xx, yy : np.ndarray
         Trace indices and corresponding seafloor sample indices.
 
-    Raises
-    ------
-    ImportError
-        If ``scipy`` is not available.
     """
   
-    if not _SCIPY_AVAILABLE:
-        raise ImportError("scipy is required. Install with: pip install scipy")
 
     sf = extract_seafloor_(im)
     x, y = seafloor_xy(sf, w=w)

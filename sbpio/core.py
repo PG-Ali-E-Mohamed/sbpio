@@ -938,8 +938,10 @@ class nav:
                 "Long": long,
             }
         )
+        
         self.shotpoints = nav_df
         self.units = units
+        self.coords_converted = False if (units[0]!=1) else True
         return nav_df
         
     def coords_2_utm(
