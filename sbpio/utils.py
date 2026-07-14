@@ -27,6 +27,95 @@ from tqdm import tqdm
 from scipy.interpolate import interp1d as _interp1d
 from scipy.signal import hilbert
 from scipy.ndimage import maximum_filter1d
+import os, struct
+#----------------------------------------------------------------------------
+
+SAMPLE_WIDTHS = {
+    1: 4,   # IBM floating point
+    2: 4,   # signed integer
+    3: 2,   # signed integer
+    4: 4,   # fixed point with gain (obsolete)
+    5: 4,   # IEEE floating point
+    6: 8,   # IEEE floating point
+    7: 3,   # signed integer
+    8: 1,   # signed integer
+    9: 8,   # signed integer
+    10: 4,  # unsigned integer
+    11: 2,  # unsigned integer
+    12: 8,  # unsigned integer
+    15: 3,  # unsigned integer
+    16: 1,  # unsigned integer
+}
+
+def zero_byte(n_bytes):
+    return b'\x00'*n_bytes
+
+def get_n_samples(fname):
+    """Collects the number of sample from each trace's header without loading data into memory"""
+    filesize = os.path.getsize(fname)
+    with open(fname, 'rb') as f:
+        f.seek(3200)
+        b = f.read(400)
+        ext   = struct.unpack('>h', b[304:306])[0]
+        fmt   = struct.unpack('>h', b[24:26])[0]  # sample  format
+        bps = SAMPLE_WIDTHS.get(fmt, 4) # Data sample format code
+        offset = 3600 + max(ext, 0)*3200
+        txt_hdrs = offset
+        n_samples=[]
+        while offset + 240 <= filesize:
+            f.seek(offset)
+            hdr = f.read(240)
+            ns  = struct.unpack('>H', hdr[114:116])[0]
+            n_samples.append(ns)
+            offset += 240 + ns*bps
+    return np.array(n_samples), txt_hdrs, fmt
+def array_to_bytes(float32_array, original_dtype):
+    """
+    Converts a float32 numpy array back to binary bytes.
+    """
+    # 1. Revert the data type back to the original dtype
+    reverted_array = float32_array.astype(original_dtype)
+    # 2. Convert the numpy array to a bytes object
+    binary_bytes = reverted_array.tobytes()
+    return binary_bytes
+def check_consistency(fname):
+    n_samples, txt_hdrs, fmt= get_n_samples(fname)
+    n_traces = n_samples.size
+    n_bytes = SAMPLE_WIDTHS.get(fmt, 4)
+    # check sample consistency 
+    ns = n_samples.max()
+    ns_byte = array_to_bytes(np.array([ns]), '>H')
+    not_consistent = (n_samples!=ns).any()
+    
+    out_fname = fname
+
+    if not_consistent:
+        print('Number of samples per trace is not consistent, Writing a new consistent file')
+        print('Note: Short traces are padded with zeros')
+
+        out_fname = os.path.join(os.path.dirname(fname),
+                    'cnss_'+os.path.basename(fname))
+        
+        pad = ns - n_samples
+        with open(fname, "rb") as src, open(out_fname, "wb") as dst:
+            # write Textural headers
+            org = src.read(txt_hdrs)
+            dst.write(org)
+            
+            for i,j in enumerate(tqdm(n_samples)):
+                chunk_size = 240 + j*n_bytes
+                org = src.read(chunk_size)
+                if not org:
+                    break
+                mm = org[:114] + ns_byte + org[116:] # modify the number of samples in byte [114:116]
+                new_bytes = pad[i]*zero_byte(n_bytes)
+                modified = mm + new_bytes
+                dst.write(modified)
+        print(f'Saved as: {out_fname}')
+    return out_fname
+
+
+
 
 # ---------------------------------------------------------------------------
 # Visualisation helpers
@@ -637,21 +726,27 @@ def mfv_fltr(x: np.ndarray, w: int = 5, desc=None) -> np.ndarray:
     x : np.ndarray
         1-D input array.
     w : int
-        Filter half-width (window spans ``2w`` samples).
+        Filter half-width (window spans ``2w`` samples). if w=0, no filtering is applied
     desc: str: description to appear on the progress bar
     Returns
     -------
     np.ndarray
         Filtered array (same dtype and length as *x*).
     """
-    xp = np.zeros(len(x) + 2 * w, dtype=x.dtype)
-    xf = np.zeros_like(xp)
-    xp[w:-w] = x
-    xp[:w] = np.flip(x[:w])
-    xp[-w:] = np.flip(x[-w:])
-    for i in tqdm(range(w, len(xf) - w), desc, leave=False):
-        xf[i] = mfv(xp[i - w: i + w])
-    return xf[w:-w]
+    if w>0:
+        xp = np.zeros(len(x) + 2 * w, dtype=x.dtype)
+        xf = np.zeros_like(xp)
+        xp[w:-w] = x
+        xp[:w] = np.flip(x[:w])
+        xp[-w:] = np.flip(x[-w:])
+        for i in tqdm(range(w, len(xf) - w), desc, leave=False):
+            xf[i] = mfv(xp[i - w: i + w])
+            
+        return xf[w:-w]
+    else:
+        return x
+        
+    
 
 
 # ---------------------------------------------------------------------------

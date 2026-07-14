@@ -41,7 +41,8 @@ from .utils import (
     water_depth_to_time,
     mfv_fltr,
     envelope,
-    get_byte_positions
+    get_byte_positions,
+    check_consistency
 )
 
 
@@ -119,6 +120,9 @@ class sbp:
         byte_position: dict = None
     ) -> None:
         
+        
+        fname =  check_consistency(fname)
+        
         self.reader = sg.open(fname, mode="r", strict=False, ignore_geometry=False)
         self.traces: Optional[np.ndarray] = None
         self.envelope: Optional[np.ndarray] = None
@@ -172,6 +176,8 @@ class sbp:
             "crp_smpl_2": None,
             "flat_seafloor":False,
             'smoothed_seafloor_s':None,
+            'filter_width':15 if n_traces>50 else 0, 
+            'filter_function':mfv_fltr
         }
 
     # ------------------------------------------------------------------
@@ -321,7 +327,7 @@ class sbp:
             )
             self.meta["water_depth_s"] = wd_s
             
-            smoothed_sf = mfv_fltr(wd_s-delay_s, 15,'Smoothing bathymetry')
+            smoothed_sf = self.meta['filter_function'](wd_s-delay_s, self.meta['filter_width'],'Smoothing bathymetry') #
             self.meta['smoothed_seafloor_s'] = smoothed_sf
         else:
             smoothed_sf = self.meta['smoothed_seafloor_s']
@@ -387,7 +393,7 @@ class sbp:
                 else get_delay_recording_time(self.reader,self.byte_position)
             )
             self.meta["delay"] = delay
-            smoothed_sf = mfv_fltr(wd_ts-delay, 15, 'Smoothing bathymetry')
+            smoothed_sf = self.meta['filter_function'](wd_ts-delay, self.meta['filter_width'],'Smoothing bathymetry')
             self.meta['smoothed_seafloor_s']=smoothed_sf
         else:
             smoothed_sf = self.meta['smoothed_seafloor_s']
@@ -433,7 +439,7 @@ class sbp:
                 else get_delay_recording_time(self.reader,self.byte_position)
             )
             self.meta["delay"] = delay
-            smoothed_sf = mfv_fltr(wd_ts-delay, 15, 'Smoothing bathymetry')
+            smoothed_sf = self.meta['filter_function'](wd_ts-delay, self.meta['filter_width'],'Smoothing bathymetry')
             self.meta['smoothed_seafloor_s']=smoothed_sf
         else:
             smoothed_sf = self.meta['smoothed_seafloor_s']
@@ -542,7 +548,7 @@ class sbp:
                     else get_delay_recording_time(self.reader,self.byte_position)
                 )
                 self.meta["delay"] = delay
-                smoothed_sf = mfv_fltr(wd_ts-delay, 15, 'Smoothing bathymetry')
+                smoothed_sf = self.meta['filter_function'](wd_ts-delay, self.meta['filter_width'],'Smoothing bathymetry')
                 self.meta['smoothed_seafloor_s']=smoothed_sf
             else:
                 smoothed_sf = self.meta['smoothed_seafloor_s']
@@ -590,7 +596,7 @@ class sbp:
                     else get_delay_recording_time(self.reader,self.byte_position)
                 )
                 self.meta["delay"] = delay
-                smoothed_sf = mfv_fltr(wd_ts-delay, 15, 'Smoothing bathymetry')
+                smoothed_sf = self.meta['filter_function'](wd_ts-delay, self.meta['filter_width'],'Smoothing bathymetry')
                 self.meta['smoothed_seafloor_s']=smoothed_sf
             else:
                 smoothed_sf = self.meta['smoothed_seafloor_s']
@@ -847,7 +853,7 @@ class sbp:
                     if self.meta["delay"] is not None
                     else get_delay_recording_time(self.reader,self.byte_position)
                 ) 
-                smoothed_sf = mfv_fltr(wd_ts - delay, 15, 'Smoothing bathymetry')
+                smoothed_sf = self.meta['filter_function'](wd_ts-delay, self.meta['filter_width'],'Smoothing bathymetry')
                 self.meta['smoothed_seafloor_s'] = smoothed_sf
             else:
                 smoothed_sf = self.meta['smoothed_seafloor_s']
